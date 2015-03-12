@@ -79,6 +79,7 @@
         this.mouseLocs =
         this.lastDelayLoc =
         this.timeoutId =
+        this.activationTimeoutId =
         this.options = null;
 
         this.init(element, options);
@@ -115,8 +116,10 @@
      * Cancel possible row activations when leaving the menu entirely
      */
     MenuAim.prototype.mouseleaveMenu = function() {
-        if (this.timeoutId) {
+        if (this.timeoutId || this.activationTimeoutId) {
+            // Cancel any previous activation delays
             clearTimeout(this.timeoutId);
+            clearTimeout(this.activationTimeoutId);
         }
 
         this.possiblyDeactivate();
@@ -156,9 +159,10 @@
      * Trigger a possible row activation whenever entering a new row.
      */
     MenuAim.prototype.mouseenterRow = function(ev) {
-        if (this.timeoutId) {
+        if (this.timeoutId || this.activationTimeoutId) {
             // Cancel any previous activation delays
             clearTimeout(this.timeoutId);
+            clearTimeout(this.activationTimeoutId);
         }
 
         this.options.enter(ev.currentTarget);
@@ -173,6 +177,12 @@
      * Immediately activate a row if the user clicks on it.
      */
     MenuAim.prototype.clickRow = function(ev) {
+        if (this.timeoutId || this.activationTimeoutId) {
+            // Cancel any previous activation delays
+            clearTimeout(this.timeoutId);
+            clearTimeout(this.activationTimeoutId);
+        }
+
         this.activate(ev.currentTarget);
     };
 
@@ -192,6 +202,21 @@
         this.activeRow = row;
     };
 
+    /**
+     * Activate a menu row with row activation delay.
+     */
+    MenuAim.prototype.delayedActivate = function(row) {
+        if (this.activationTimeoutId) {
+            clearTimeout(this.activationTimeoutId)
+        }
+
+        var delay = this.ROW_ACTIVATION_DELAY
+          , self = this;
+
+        this.activationTimeoutId = setTimeout(function() {
+            self.activate(row);
+        }, delay);
+    };
 
     /**
      * Possibly activate a menu row. If mouse movement indicates that we
@@ -207,7 +232,7 @@
                 self.possiblyActivate(row);
             }, delay);
         } else {
-            this.activate(row);
+            this.delayedActivate(row);
         }
     };
 
@@ -341,8 +366,10 @@
     };
 
     MenuAim.prototype.reset = function(triggerDeactivate) {
-        if (this.timeoutId) {
+        if (this.timeoutId || this.activationTimeoutId) {
+            // Cancel any previous activation delays
             clearTimeout(this.timeoutId);
+            clearTimeout(this.activationTimeoutId);
         }
 
         if (this.activeRow && triggerDeactivate) {
@@ -362,6 +389,7 @@
 
         this.MOUSE_LOCS_TRACKED = 3;  // number of past mouse locations to track
         this.DELAY = 300;  // ms delay when user appears to be entering submenu
+        this.ROW_ACTIVATION_DELAY = 100;  // ms delay before menu appears after activation
 
         /**
          * Hook up initial menu events
