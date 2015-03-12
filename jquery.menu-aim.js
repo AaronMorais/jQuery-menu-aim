@@ -119,16 +119,38 @@
             clearTimeout(this.timeoutId);
         }
 
-        // If exitMenu is supplied and returns true, deactivate the
-        // currently active row on menu exit.
-        if (this.options.exitMenu(this)) {
-            if (this.activeRow) {
-                this.options.deactivate(this.activeRow);
-            }
+        this.possiblyDeactivate();
+    };
 
+    /**
+     * Deactivate a menu row.
+     */
+    MenuAim.prototype.deactivate = function(row) {
+        if (this.activeRow) {
+            this.options.exitMenu(this);
+            this.options.deactivate(this.activeRow);
             this.activeRow = null;
         }
     };
+
+    /**
+     * Possibly deactivate a menu row. When moving outside main menu
+     * track if mouse movement is towards submenu, if it is -
+     * delay and check again later.
+     */
+    MenuAim.prototype.possiblyDeactivate = function(row) {
+        var delay = this.activationDelay()
+          , self = this;
+
+        if (delay) {
+            this.timeoutId = setTimeout(function() {
+                self.possiblyDeactivate(row);
+            }, delay);
+        } else {
+            this.deactivate(row);
+        }
+    };
+
 
     /**
      * Trigger a possible row activation whenever entering a new row.
